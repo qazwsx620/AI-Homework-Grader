@@ -45,12 +45,6 @@
             }
         });
 
-        // 心跳
-        setInterval(() => {
-            if (window.location.protocol !== 'blob:' && window.location.protocol !== 'file:') {
-                fetch('/api/heartbeat').catch(() => {});
-            }
-        }, 2000);
 
         // ==================== DOM 元素 ====================
         const loginPage = document.getElementById('loginPage');

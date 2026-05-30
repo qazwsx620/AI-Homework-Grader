@@ -14,10 +14,6 @@ DB_PASSWORD = quote_plus("251027Wmh#")
 DB_URL = f"mysql+pymysql://root:{DB_PASSWORD}@localhost:3306/studentsdb"
 app.config['DB_ENGINE'] = create_engine(DB_URL, pool_pre_ping=True)
 
-# 看门狗（网页关闭后自动退出）
-from core.watchdog import start_watchdog, heartbeat
-start_watchdog()
-app.add_url_rule('/api/heartbeat', 'heartbeat', heartbeat)
 
 # 注册蓝图
 from api.auth_api import auth_bp
