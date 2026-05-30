@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 智能作业批改系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        success: '#10B981',
+                        neutral: '#64748B'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .btn-hover { @apply hover:scale-105 transition-all duration-200 active:scale-95; }
+            .card-shadow { @apply shadow-lg shadow-gray-200/50; }
+            .smooth-transition { @apply transition-all duration-300 ease-in-out; }
+            .lock-cursor { @apply cursor-not-allowed opacity-60 pointer-events-none; }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen font-sans">
+
+    {% include 'login.html' %}
+    {% include 'home.html' %}
+    {% include 'grading.html' %}
+    {% include 'history.html' %}
+
+    <script>
+        // 页面关闭时销毁后端程序
+        window.addEventListener('beforeunload', function(){
+            if(location.protocol !== 'file:'){
+                fetch('/api/close', {method:'POST', keepalive:true}).catch(()=>{});
+            }
+        });
+
+        // 心跳
+        setInterval(() => {
+            if (window.location.protocol !== 'blob:' && window.location.protocol !== 'file:') {
+                fetch('/api/heartbeat').catch(() => {});
+            }
+        }, 2000);
+
+        // ==================== DOM 元素 ====================
+        const loginPage = document.getElementById('loginPage');
+        const registerPage = document.getElementById('registerPage');
+        const homePage = document.getElementById('homePage');
+        const gradingPage = document.getElementById('gradingPage');
+
+        // 登录
+        const loginForm = document.getElementById('loginForm');
+        const loginUsername = document.getElementById('loginUsername');
+        const loginPassword = document.getElementById('loginPassword');
+        const loginError = document.getElementById('loginError');
+        const showRegisterBtn = document.getElementById('showRegisterBtn');
+
+        // 注册
+        const registerForm = document.getElementById('registerForm');
+        const regUsername = document.getElementById('regUsername');
+        const regPassword = document.getElementById('regPassword');
+        const regPasswordConfirm = document.getElementById('regPasswordConfirm');
+        const registerError = document.getElementById('registerError');
+        const registerSuccess = document.getElementById('registerSuccess');
+        const closeRegisterBtn = document.getElementById('closeRegisterBtn');
+        const backToLoginBtn = document.getElementById('backToLoginBtn');
+
+        // 首页
+        const homeUsername = document.getElementById('homeUsername');
+        const welcomeUsername = document.getElementById('welcomeUsername');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const goToGradingBtn = document.getElementById('goToGradingBtn');
+
+        // 批改页
+        const backToHomeBtn = document.getElementById('backToHomeBtn');
+        const fileInput = document.getElementById('file-upload');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const loading = document.getElementById('loading');
+        const resultArea = document.getElementById('resultArea');
+        const resultImage = document.getElementById('resultImage');
+        const dropArea = document.getElementById('dropArea');
+        const resetBtn = document.getElementById('resetBtn');
+        const previewImage = document.getElementById('previewImage');
+        const previewContainer = document.getElementById('previewContainer');
+        const uploadPrompt = document.getElementById('uploadPrompt');
+        const previewFileName = document.getElementById('previewFileName');
+        const lockTip = document.getElementById('lockTip');
+        const openCameraBtn = document.getElementById('openCameraBtn');
+        const cameraContainer = document.getElementById('cameraContainer');
+        const uploadContainer = document.getElementById('uploadContainer');
+        const videoElement = document.getElementById('videoElement');
+        const captureBtn = document.getElementById('captureBtn');
+        const closeCameraBtn = document.getElementById('closeCameraBtn');
+        const switchCameraBtn = document.getElementById('switchCameraBtn');
+        const canvasElement = document.getElementById('canvasElement');
+
+        const imgZoomMask = document.getElementById('imgZoomMask');
+        const imgZoom = document.getElementById('imgZoom');
+        const closeZoom = document.getElementById('closeZoom');
+
+        // 历史记录
+        const historyPage = document.getElementById('historyPage');
+        const backFromHistoryBtn = document.getElementById('backFromHistoryBtn');
+        const goToHistoryBtn = document.getElementById('goToHistoryBtn');
+        const historyList = document.getElementById('historyList');
+        const historyEmpty = document.getElementById('historyEmpty');
+        const historyLoading = document.getElementById('historyLoading');
+        const historyItems = document.getElementById('historyItems');
+        const historyDetail = document.getElementById('historyDetail');
+        const backToListBtn = document.getElementById('backToListBtn');
+        const detailTitle = document.getElementById('detailTitle');
+        const detailTime = document.getElementById('detailTime');
+        const detailResultImage = document.getElementById('detailResultImage');
+        const deleteRecordBtn = document.getElementById('deleteRecordBtn');
+        const deleteConfirmMask = document.getElementById('deleteConfirmMask');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+        let selectedFile = null;
+        let videoStream = null;
+        let useFrontCamera = false;
+        let isGrading = false;
+        let currentUser = null;
+
+        // ==================== 页面切换 ====================
+        function showPage(page) {
+            [loginPage, homePage, gradingPage, historyPage].forEach(p => p.classList.add('hidden'));
+            document.getElementById(page).classList.remove('hidden');
+        }
+
+        // ==================== 登录状态检查 ====================
+        async function checkLoginState() {
+            try {
+                const res = await fetch('/api/check_login');
+                const data = await res.json();
+                if (data.logged_in) {
+                    currentUser = data.username;
+                    homeUsername.textContent = currentUser;
+                    welcomeUsername.textContent = currentUser;
+                    showPage('homePage');
+                } else {
+                    showPage('loginPage');
+                }
+            } catch (e) {
+                showPage('loginPage');
+            }
+        }
+
+        // ==================== 登录 ====================
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            loginError.classList.add('hidden');
+
+            const username = loginUsername.value.trim();
+            const password = loginPassword.value.trim();
+
+            if (!username || !password) {
+                loginError.textContent = '请输入用户名和密码';
+                loginError.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    currentUser = data.username;
+                    homeUsername.textContent = currentUser;
+                    welcomeUsername.textContent = currentUser;
+                    loginUsername.value = '';
+                    loginPassword.value = '';
+                    showPage('homePage');
+                } else {
+                    loginError.textContent = data.message;
+                    loginError.classList.remove('hidden');
+                }
+            } catch (e) {
+                loginError.textContent = '网络异常，请检查后端服务';
+                loginError.classList.remove('hidden');
+            }
+        });
+
+        // ==================== 注册 ====================
+        function openRegister() {
+            registerPage.classList.remove('hidden');
+            registerError.classList.add('hidden');
+            registerSuccess.classList.add('hidden');
+            regUsername.value = '';
+            regPassword.value = '';
+            regPasswordConfirm.value = '';
+        }
+        function closeRegister() {
+            registerPage.classList.add('hidden');
+        }
+
+        showRegisterBtn.addEventListener('click', openRegister);
+        closeRegisterBtn.addEventListener('click', closeRegister);
+        backToLoginBtn.addEventListener('click', closeRegister);
+        registerPage.addEventListener('click', (e) => {
+            if (e.target === registerPage) closeRegister();
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            registerError.classList.add('hidden');
+            registerSuccess.classList.add('hidden');
+
+            const username = regUsername.value.trim();
+            const password = regPassword.value;
+            const confirm = regPasswordConfirm.value;
+
+            if (!username || !password || !confirm) {
+                registerError.textContent = '请填写所有字段';
+                registerError.classList.remove('hidden');
+                return;
+            }
+            if (password !== confirm) {
+                registerError.textContent = '两次密码输入不一致';
+                registerError.classList.remove('hidden');
+                return;
+            }
+            if (password.length < 3) {
+                registerError.textContent = '密码长度至少3个字符';
+                registerError.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    registerSuccess.textContent = '🎉 注册成功！请返回登录';
+                    registerSuccess.classList.remove('hidden');
+                    registerError.classList.add('hidden');
+                    regUsername.value = '';
+                    regPassword.value = '';
+                    regPasswordConfirm.value = '';
+                    setTimeout(() => closeRegister(), 1500);
+                } else {
+                    registerError.textContent = data.message;
+                    registerError.classList.remove('hidden');
+                }
+            } catch (e) {
+                registerError.textContent = '网络异常，请检查后端服务';
+                registerError.classList.remove('hidden');
+            }
+        });
+
+        // ==================== 退出登录 ====================
+        logoutBtn.addEventListener('click', async () => {
+            await fetch('/api/logout', {method: 'POST'});
+            currentUser = null;
+            showPage('loginPage');
+        });
+
+        // ==================== 页面导航 ====================
+        goToGradingBtn.addEventListener('click', () => showPage('gradingPage'));
+        backToHomeBtn.addEventListener('click', () => showPage('homePage'));
+
+        // ==================== 批改记录 ====================
+        goToHistoryBtn.addEventListener('click', () => {
+            showPage('historyPage');
+            loadHistoryList();
+        });
+
+        backFromHistoryBtn.addEventListener('click', () => showPage('homePage'));
+        backToListBtn.addEventListener('click', () => {
+            historyDetail.classList.add('hidden');
+            historyList.classList.remove('hidden');
+        });
+
+        let currentDetailId = null;
+
+        async function loadHistoryList() {
+            historyItems.classList.add('hidden');
+            historyEmpty.classList.add('hidden');
+            historyLoading.classList.remove('hidden');
+
+            try {
+                const res = await fetch('/api/grading_history');
+                const data = await res.json();
+                historyLoading.classList.add('hidden');
+
+                if (data.status === 'success' && data.records.length > 0) {
+                    historyItems.classList.remove('hidden');
+                    historyItems.innerHTML = '';
+                    data.records.forEach(record => {
+                        const card = document.createElement('div');
+                        card.className = 'bg-white card-shadow rounded-xl p-5 hover:scale-[1.01] smooth-transition cursor-pointer border border-gray-100';
+                        card.innerHTML = `
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <span class="text-2xl">📄</span>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-800">${escapeHtml(record.filename)}</h4>
+                                        <p class="text-sm text-gray-400 mt-0.5">${record.created_at}</p>
+                                    </div>
+                                </div>
+                                <span class="text-gray-300 text-xl">&rarr;</span>
+                            </div>
+                        `;
+                        card.addEventListener('click', () => viewHistoryDetail(record.id));
+                        historyItems.appendChild(card);
+                    });
+                } else {
+                    historyEmpty.classList.remove('hidden');
+                }
+            } catch (e) {
+                historyLoading.classList.add('hidden');
+                historyEmpty.classList.remove('hidden');
+                historyEmpty.querySelector('p').textContent = '加载失败，请检查网络';
+            }
+        }
+
+        async function viewHistoryDetail(id) {
+            currentDetailId = id;
+            try {
+                const res = await fetch(`/api/grading_history/${id}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    const rec = data.record;
+                    detailTitle.textContent = rec.filename;
+                    detailTime.textContent = rec.created_at;
+                    detailResultImage.src = rec.result_image || '';
+
+                    historyList.classList.add('hidden');
+                    historyDetail.classList.remove('hidden');
+                } else {
+                    alert('获取记录详情失败');
+                }
+            } catch (e) {
+                alert('网络异常');
+            }
+        }
+
+        deleteRecordBtn.addEventListener('click', () => {
+            deleteConfirmMask.classList.remove('hidden');
+        });
+
+        cancelDeleteBtn.addEventListener('click', () => {
+            deleteConfirmMask.classList.add('hidden');
+        });
+
+        deleteConfirmMask.addEventListener('click', (e) => {
+            if (e.target === deleteConfirmMask) deleteConfirmMask.classList.add('hidden');
+        });
+
+        confirmDeleteBtn.addEventListener('click', async () => {
+            if (!currentDetailId) return;
+            try {
+                const res = await fetch(`/api/grading_history/${currentDetailId}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    deleteConfirmMask.classList.add('hidden');
+                    historyDetail.classList.add('hidden');
+                    historyList.classList.remove('hidden');
+                    loadHistoryList();
+                } else {
+                    alert('删除失败');
+                }
+            } catch (e) {
+                alert('网络异常');
+            }
+        });
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ==================== 保存批改记录 ====================
+        async function saveGradingToHistory(gradeData) {
+            try {
+                await fetch('/api/save_grading', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        filename: gradeData.filename,
+                        ocr_text: gradeData.ocr_text,
+                        feedback_json: gradeData.feedback_json,
+                        result_image: gradeData.image_path
+                    })
+                });
+            } catch (e) {
+                console.error('保存批改记录失败:', e);
+            }
+        }
+
+        // ==================== 批改页功能 ====================
+        function showImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                previewImage.src = e.target.result;
+                previewFileName.textContent = `已选择：${file.name}`;
+                uploadPrompt.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+                dropArea.classList.add('border-success', 'border-solid');
+                dropArea.classList.remove('border-dashed', 'border-gray-300');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImagePreview() {
+            previewImage.src = '';
+            uploadPrompt.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+            dropArea.classList.remove('border-success', 'border-solid');
+            dropArea.classList.add('border-dashed', 'border-gray-300');
+        }
+
+        previewImage.addEventListener('click', ()=>{
+            imgZoom.src = previewImage.src;
+            imgZoomMask.classList.remove('hidden');
+        });
+        closeZoom.addEventListener('click', ()=>{
+            imgZoomMask.classList.add('hidden');
+        });
+        imgZoomMask.addEventListener('click', (e)=>{
+            if (e.target === imgZoomMask) imgZoomMask.classList.add('hidden');
+        });
+
+        function lockAllOperate() {
+            isGrading = true;
+            fileInput.disabled = true;
+            openCameraBtn.disabled = true;
+            dropArea.classList.add('lock-cursor');
+            lockTip.classList.remove('hidden');
+        }
+        function unlockAllOperate() {
+            isGrading = false;
+            fileInput.disabled = false;
+            openCameraBtn.disabled = false;
+            dropArea.classList.remove('lock-cursor');
+            lockTip.classList.add('hidden');
+        }
+
+        async function startCamera() {
+            if (isGrading) return;
+            try {
+                const constraints = {video:{facingMode: useFrontCamera ? "user" : "environment"}};
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = videoStream;
+                uploadContainer.classList.add('hidden');
+                cameraContainer.classList.remove('hidden');
+                resultArea.classList.add('hidden');
+            } catch (err) {
+                alert("无法访问摄像头，请检查权限与访问协议");
+            }
+        }
+        function stopCamera() {
+            if (videoStream) videoStream.getTracks().forEach(track => track.stop());
+            videoStream = null;
+            cameraContainer.classList.add('hidden');
+            uploadContainer.classList.remove('hidden');
+        }
+
+        openCameraBtn.addEventListener('click', startCamera);
+        closeCameraBtn.addEventListener('click', stopCamera);
+        switchCameraBtn.addEventListener('click', ()=>{
+            useFrontCamera = !useFrontCamera;
+            stopCamera();
+            setTimeout(startCamera, 200);
+        });
+
+        captureBtn.addEventListener('click', ()=>{
+            canvasElement.width = videoElement.videoWidth;
+            canvasElement.height = videoElement.videoHeight;
+            const ctx = canvasElement.getContext('2d');
+            ctx.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+            canvasElement.toBlob(blob => {
+                const name = `作业拍照_${Date.now()}.jpg`;
+                selectedFile = new File([blob], name, {type: "image/jpeg"});
+                showImagePreview(selectedFile);
+                stopCamera();
+            }, "image/jpeg", 0.95);
+        });
+
+        fileInput.addEventListener('change', e => {
+            if (isGrading) return;
+            if (e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                showImagePreview(selectedFile);
+            }
+        });
+
+        ['dragenter','dragover','dragleave','drop'].forEach(ev => {
+            dropArea.addEventListener(ev, e => e.preventDefault());
+        });
+        dropArea.addEventListener('drop', e => {
+            if (isGrading) return;
+            const files = e.dataTransfer.files;
+            if (files.length && files[0].type.startsWith('image/')){
+                selectedFile = files[0];
+                fileInput.files = files;
+                showImagePreview(selectedFile);
+            }
+        });
+
+        uploadForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            if (!selectedFile) {
+                alert("请先选择或拍摄作业图片");
+                return;
+            }
+            lockAllOperate();
+            submitBtn.disabled = true;
+            loading.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            try {
+                const res = await fetch('/api/grade', {method:'POST', body: formData});
+                const data = await res.json();
+                if (data.status === 'success') {
+                    resultImage.src = data.image_path;
+                    resultArea.classList.remove('hidden');
+                    // 自动保存到批改记录
+                    saveGradingToHistory(data);
+                } else {
+                    alert("批改失败：" + data.message);
+                }
+            } catch(err) {
+                alert("网络异常，请检查后端服务");
+                console.error(err);
+            } finally {
+                submitBtn.disabled = false;
+                loading.classList.add('hidden');
+                unlockAllOperate();
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            resultArea.classList.add('hidden');
+            selectedFile = null;
+            fileInput.value = '';
+            clearImagePreview();
+        });
+
+        // ==================== 启动 ====================
+        checkLoginState();
+    </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!-- ========== 登录页面 ========== -->
+<div id="loginPage" class="min-h-screen flex items-center justify-center px-4 py-10">
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <div class="inline-block mb-3 px-4 py-1 bg-primary/10 rounded-full">
+                <h1 class="text-3xl font-bold text-primary">📝 AI 智能作业批改</h1>
+            </div>
+            <p class="text-neutral text-sm">登录后即可使用智能批改服务</p>
+        </div>
+
+        <div class="bg-white card-shadow rounded-xl p-8 smooth-transition">
+            <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">用户登录</h2>
+
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">用户名</label>
+                    <input type="text" id="loginUsername" placeholder="请输入用户名"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none smooth-transition">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-600 mb-1">密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入密码"
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none smooth-transition">
+                </div>
+                <button type="submit"
+                        class="w-full py-3 rounded-lg text-white bg-primary hover:bg-primary/90 btn-hover font-medium">
+                    登 录
+                </button>
+                <p id="loginError" class="text-red-500 text-sm text-center hidden"></p>
+            </form>
+
+            <div class="mt-6 text-center border-t border-gray-100 pt-5">
+                <p class="text-sm text-gray-500 mb-3">还没有账号？</p>
+                <button id="showRegisterBtn" type="button"
+                        class="w-full py-2.5 rounded-lg border-2 border-primary text-primary font-medium hover:bg-primary/5 btn-hover">
+                    立即注册
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== 注册弹层 ========== -->
+<div id="registerPage" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4">
+    <div class="bg-white rounded-xl w-full max-w-md p-8 shadow-2xl smooth-transition">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-semibold text-gray-800">创建新账号</h2>
+            <button id="closeRegisterBtn" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+        </div>
+        <form id="registerForm" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">用户名</label>
+                <input type="text" id="regUsername" placeholder="用户名"
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none smooth-transition">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">密码</label>
+                <input type="password" id="regPassword" placeholder="密码"
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none smooth-transition">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">确认密码</label>
+                <input type="password" id="regPasswordConfirm" placeholder="再次输入密码"
+                       class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none smooth-transition">
+            </div>
+            <button type="submit"
+                    class="w-full py-3 rounded-lg text-white bg-success hover:bg-success/90 btn-hover font-medium">
+                注 册
+            </button>
+            <p id="registerError" class="text-red-500 text-sm text-center hidden"></p>
+            <p id="registerSuccess" class="text-green-500 text-sm text-center hidden"></p>
+        </form>
+        <div class="mt-4 text-center">
+            <button id="backToLoginBtn" type="button" class="text-sm text-primary hover:underline">
+                已有账号？返回登录
+            </button>
+        </div>
+    </div>
+</div>

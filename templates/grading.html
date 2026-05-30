@@ -1,0 +1,107 @@
+<!-- ========== 作业批改页面 ========== -->
+<div id="gradingPage" class="hidden">
+    <!-- 批改页导航 -->
+    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl">📝</span>
+                <span class="font-bold text-lg text-primary">作业批改</span>
+            </div>
+            <button id="backToHomeBtn"
+                    class="text-sm px-4 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 btn-hover">
+                &larr; 返回首页
+            </button>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <!-- 摄像头区域 -->
+        <div id="cameraContainer" class="hidden card-shadow sm:rounded-xl mb-8 overflow-hidden relative smooth-transition">
+            <video id="videoElement" autoplay playsinline class="w-full h-auto max-h-[60vh] object-cover"></video>
+            <div class="absolute inset-0 pointer-events-none">
+                <div class="border-[3px] border-success/80 border-dashed rounded-2xl m-6 sm:m-10 h-[80%]"></div>
+                <p class="absolute top-8 left-1/2 -translate-x-1/2 text-white text-sm bg-black/40 px-3 py-1 rounded-full">
+                    请将作业对齐取景框内
+                </p>
+            </div>
+            <div class="absolute bottom-6 left-0 right-0 flex justify-center gap-4 sm:gap-8">
+                <button id="closeCameraBtn" class="bg-gray-700/90 text-white px-5 py-2.5 rounded-full btn-hover">关闭相机</button>
+                <button id="captureBtn" class="bg-white text-black font-bold px-8 py-3 rounded-full border-4 border-gray-300 btn-hover">📸 拍照</button>
+                <button id="switchCameraBtn" class="bg-gray-700/90 text-white px-5 py-2.5 rounded-full btn-hover">🔄 翻转镜头</button>
+            </div>
+            <canvas id="canvasElement" class="hidden"></canvas>
+        </div>
+
+        <!-- 上传/预览合并区域 -->
+        <div id="uploadContainer" class="bg-white card-shadow sm:rounded-xl mb-8 smooth-transition">
+            <div class="px-4 py-6 sm:p-8 text-center">
+                <button id="openCameraBtn" class="mb-6 w-full sm:w-auto inline-flex justify-center items-center px-7 py-3.5 rounded-lg text-white bg-primary btn-hover">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812-1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    直接拍照批改
+                </button>
+
+                <div class="relative flex py-3 items-center">
+                    <div class="flex-grow border-t border-gray-200"></div>
+                    <span class="flex-shrink-0 mx-4 text-gray-400 text-sm">或上传本地作业图片</span>
+                    <div class="flex-grow border-t border-gray-200"></div>
+                </div>
+
+                <form id="uploadForm" class="space-y-5 mt-6">
+                    <div class="flex items-center justify-center w-full">
+                        <label for="file-upload" id="dropArea" class="relative w-full h-[400px] border-2 border-dashed border-gray-300 rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 smooth-transition overflow-hidden">
+                            <div id="uploadPrompt" class="absolute inset-0 flex flex-col items-center justify-center p-6">
+                                <svg class="w-12 h-12 mb-3 text-primary/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                <p class="text-neutral">
+                                    <span class="font-semibold text-primary">点击选择图片</span>
+                                    <span class="text-xs block mt-1">支持拖拽图片到此处上传</span>
+                                </p>
+                            </div>
+                            <div id="previewContainer" class="hidden absolute inset-0 bg-white flex items-center justify-center p-4">
+                                <img id="previewImage" src="" alt="图片预览" class="max-w-full max-h-full object-contain cursor-zoom-in rounded">
+                                <div class="absolute bottom-4 left-0 right-0 flex justify-center">
+                                    <div class="bg-black/60 text-white text-sm px-3 py-1 rounded-full">
+                                        <span id="previewFileName">已选择：</span>
+                                        <span id="lockTip" class="text-orange-300 ml-2 hidden">批改中禁止更换</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <input id="file-upload" type="file" class="hidden" accept="image/*" />
+                        </label>
+                    </div>
+                    <button type="submit" id="submitBtn" class="w-full py-3.5 px-4 rounded-lg text-white bg-primary disabled:bg-gray-300 btn-hover font-medium">
+                        开始智能批改
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 点击图片放大的全屏遮罩 -->
+        <div id="imgZoomMask" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+            <img id="imgZoom" class="max-w-full max-h-full object-contain">
+            <button id="closeZoom" class="absolute top-6 right-6 text-white text-3xl">&times;</button>
+        </div>
+
+        <!-- 加载动画 -->
+        <div id="loading" class="hidden text-center my-12 smooth-transition">
+            <div class="inline-block animate-spin rounded-full h-14 w-14 border-b-3 border-primary"></div>
+            <p class="mt-4 text-lg text-neutral font-medium">⏳ 正在处理图片并智能批改中，请稍候...</p>
+            <p class="text-sm text-gray-400 mt-2">处理期间无法更换图片</p>
+        </div>
+
+        <!-- 结果区域 -->
+        <div id="resultArea" class="hidden bg-white card-shadow sm:rounded-xl overflow-hidden smooth-transition">
+            <div class="px-5 py-4 bg-success/10 border-b border-success/20 flex justify-between items-center">
+                <h3 class="text-lg font-medium text-success">✅ 批改完成！</h3>
+                <button id="resetBtn" class="text-sm px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 btn-hover">重新批改</button>
+            </div>
+            <div class="p-6 sm:p-8">
+                <img id="resultImage" src="" alt="批改结果" class="max-w-full h-auto rounded-lg shadow-sm mx-auto transform hover:scale-[1.02] transition-transform">
+            </div>
+        </div>
+    </div>
+</div>
