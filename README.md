@@ -39,8 +39,7 @@
 ├── core/
 │   ├── scanner.py          # 文档扫描与图像增强
 │   ├── image_utils.py      # 批改结果图像绘制
-│   ├── llm_api.py          # 大模型批改模块
-│   └── watchdog.py         # 看门狗与系统维护
+│   └── llm_api.py          # 大模型批改模块
 └── templates/
     ├── index.html          # 首页
     ├── login.html          # 登录页
@@ -142,7 +141,6 @@ start_windows.bat
 
 ## 注意事项
 
-- 首次启动需确保 MySQL 服务已运行且 `studentsdb` 数据库已创建
 - 图片上传建议使用 JPG 格式，单张图片大小不超过 10MB
 - OCR 识别需要公网访问（图片会上传至临时图床）
 - API 密钥请妥善保管，勿提交至版本控制
