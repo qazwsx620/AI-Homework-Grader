@@ -18,9 +18,9 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
-# 请在这里填入夸克 Client ID 和 Secret
-QUARK_CLIENT_ID = "**********"
-QUARK_CLIENT_SECRET = "**********"
+# 从环境变量读取夸克 Client ID 和 Secret（避免硬编码泄露）
+QUARK_CLIENT_ID = os.environ.get("QUARK_CLIENT_ID", "")
+QUARK_CLIENT_SECRET = os.environ.get("QUARK_CLIENT_SECRET", "")
 
 
 def get_signature(client_id, client_secret, business, sign_method, sign_nonce, timestamp):

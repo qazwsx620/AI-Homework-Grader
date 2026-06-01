@@ -22,7 +22,7 @@ if cloud_db_url:
 else:
     # 如果是在自己的电脑上测试，使用本地数据库
     print("未检测到环境变量，正在连接本地 MySQL 数据库...")
-    DB_PASSWORD = quote_plus("251027Wmh#")
+    DB_PASSWORD = quote_plus(os.environ.get("DB_PASSWORD", "251027Wmh#"))
     DB_URL = f"mysql+pymysql://root:{DB_PASSWORD}@localhost:3306/studentsdb"
 
 # 初始化数据库引擎 (pool_pre_ping=True 非常重要，可以防止云数据库连接长时间休眠后断开)

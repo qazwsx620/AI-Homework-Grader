@@ -91,23 +91,25 @@ CREATE TABLE grading_history (
 
 3. **配置 API 密钥**
 
-在 `core/llm_api.py` 中填入你的通义千问 API Key：
-```python
-api_key = "your-dashscope-api-key"
-```
+   复制环境变量模板并填入你的密钥：
+   ```bash
+   cp .env.example .env
+   ```
 
-在 `api/ocr_api.py` 中填入夸克接口凭证：
-```python
-QUARK_CLIENT_ID = "your-client-id"
-QUARK_CLIENT_SECRET = "your-client-secret"
-```
+   编辑 `.env` 文件，填入以下凭据：
+   ```env
+   # 夸克 OCR 接口凭据
+   QUARK_CLIENT_ID=your-client-id
+   QUARK_CLIENT_SECRET=your-client-secret
 
-4. **修改数据库密码**
+   # 通义千问 DashScope API 密钥
+   DASHSCOPE_API_KEY=your-dashscope-api-key
 
-在 `app.py` 中修改 MySQL 连接密码：
-```python
-DB_PASSWORD = quote_plus("your-password")
-```
+   # MySQL 数据库密码（按需修改）
+   DB_PASSWORD=your-password
+   ```
+
+   > 云端部署（Render）时，直接在 Render Dashboard 的 Environment Variables 中设置以上变量即可。
 
 5. **安装依赖**
 

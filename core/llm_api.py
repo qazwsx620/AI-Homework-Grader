@@ -13,8 +13,8 @@ if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
-# 千问 DashScope API 密钥
-api_key = "********************"
+# 从环境变量读取千问 DashScope API 密钥（避免硬编码泄露）
+api_key = os.environ.get("DASHSCOPE_API_KEY", "")
 
 
 def _estimate_question_count(text):
