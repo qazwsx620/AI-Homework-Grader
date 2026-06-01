@@ -5,6 +5,7 @@ core/llm_api.py — 大模型批改模块
 """
 import json
 import re
+import os
 import sys
 import requests
 
