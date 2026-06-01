@@ -41,7 +41,7 @@ def api_grade():
         print("正在进行OCR识别")
         paper_text = extract_text(enhanced_bytes)
 
-        if not paper_text or "OCR识别失败" in paper_text:
+        if not paper_text or "OCR识别失败" in paper_text or "运行异常" in paper_text:
             error_detail = paper_text if paper_text else "OCR未返回任何文字"
             print(f"OCR识别失败，详情: {error_detail}")
             return jsonify({'status': 'error', 'message': error_detail}), 500

@@ -3,6 +3,7 @@ api/ocr_api.py — OCR 文字识别模块
 负责：图片校验与压缩 → 上传至公网图床 → 夸克 OCR 接口识别
 """
 import os
+import sys
 import base64
 import time
 import requests
@@ -11,6 +12,11 @@ import uuid
 import hashlib
 import io
 from PIL import Image
+
+# Windows 终端编码修复：避免 GBK 无法编码 Unicode 字符导致崩溃
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 # 请在这里填入夸克 Client ID 和 Secret
 QUARK_CLIENT_ID = "**********"
@@ -34,6 +40,7 @@ def get_signature(client_id, client_secret, business, sign_method, sign_nonce, t
         raise ValueError("Unsupported sign method")
 
     return digest.lower()
+
 
 
 # 绕过代理的配置（避免 HTTP_PROXY/HTTPS_PROXY 环境变量干扰图床上传）
@@ -188,7 +195,8 @@ def extract_text(image_bytes):
 
         if response.status_code == 200:
             res_json = response.json()
-            print("夸克接口原始返回数据：", res_json)
+            import json as _json
+            print("夸克接口原始返回数据：", _json.dumps(res_json, ensure_ascii=False, indent=2, default=str))
 
             code = str(res_json.get("code", ""))
             if code not in ["200", "0", "00000"]:

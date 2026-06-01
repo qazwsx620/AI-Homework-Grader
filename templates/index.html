@@ -38,14 +38,6 @@
     {% include 'history.html' %}
 
     <script>
-        // 页面关闭时销毁后端程序
-        window.addEventListener('beforeunload', function(){
-            if(location.protocol !== 'file:'){
-                fetch('/api/close', {method:'POST', keepalive:true}).catch(()=>{});
-            }
-        });
-
-
         // ==================== DOM 元素 ====================
         const loginPage = document.getElementById('loginPage');
         const registerPage = document.getElementById('registerPage');
@@ -267,7 +259,17 @@
         });
 
         // ==================== 页面导航 ====================
-        goToGradingBtn.addEventListener('click', () => showPage('gradingPage'));
+        function resetGradingPage() {
+            resultArea.classList.add('hidden');
+            selectedFile = null;
+            fileInput.value = '';
+            clearImagePreview();
+        }
+
+        goToGradingBtn.addEventListener('click', () => {
+            resetGradingPage();
+            showPage('gradingPage');
+        });
         backToHomeBtn.addEventListener('click', () => showPage('homePage'));
 
         // ==================== 批改记录 ====================
@@ -531,12 +533,7 @@
                 if (data.status === 'success') {
                     resultImage.src = data.image_path;
                     resultArea.classList.remove('hidden');
-                    // 自动保存到批改记录
                     saveGradingToHistory(data);
-                    // 清空预览图片，方便直接批改下一份作业
-                    selectedFile = null;
-                    fileInput.value = '';
-                    clearImagePreview();
                 } else {
                     alert("批改失败：" + data.message);
                 }
