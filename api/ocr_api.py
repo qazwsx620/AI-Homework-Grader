@@ -55,9 +55,34 @@ def upload_to_temp_host(image_bytes):
     """
     print("正在将图片上传至临时中转图床...")
 
-    # ================= 节点 1: FreeImage.host =================
+    # ================= 节点 1: SM.MS（香港节点，国内可达） =================
     try:
-        print("  -> 正在尝试节点 1 (FreeImage)...")
+        print("  -> 正在尝试节点 1 (SM.MS)...")
+        response = requests.post(
+            "https://sm.ms/api/v2/upload",
+            files={"smfile": ("upload.jpg", image_bytes, "image/jpeg")},
+            proxies=_NO_PROXY,
+            timeout=15
+        )
+        if response.status_code in (200, 201):
+            res_json = response.json()
+            if res_json.get("code") == "success":
+                public_url = res_json.get("data", {}).get("url")
+                if public_url:
+                    print(f"节点 1 上传成功: {public_url}")
+                    return public_url
+            # SM.MS 返回图片已存在时也提取 URL
+            elif res_json.get("code") == "image_repeated":
+                public_url = res_json.get("images")
+                if public_url:
+                    print(f"节点 1 图片已存在，复用 URL: {public_url}")
+                    return public_url
+    except Exception as e:
+        print(f"节点 1 (SM.MS) 连接失败 ({e})，正在切换备用节点...")
+
+    # ================= 节点 2: FreeImage.host（海外兜底） =================
+    try:
+        print("  -> 正在尝试节点 2 (FreeImage)...")
         b64_img = base64.b64encode(image_bytes).decode('utf-8')
         response = requests.post(
             "https://freeimage.host/api/1/upload",
@@ -74,14 +99,14 @@ def upload_to_temp_host(image_bytes):
             res_json = response.json()
             public_url = res_json.get("image", {}).get("url")
             if public_url:
-                print(f"节点 1 上传成功: {public_url}")
+                print(f"节点 2 上传成功: {public_url}")
                 return public_url
     except Exception as e:
-        print(f"节点 1 连接失败 ({e})，正在切换备用节点...")
+        print(f"节点 2 (FreeImage) 连接失败 ({e})，正在切换备用节点...")
 
-    # ================= 节点 2: Catbox.moe =================
+    # ================= 节点 3: Catbox.moe（海外兜底） =================
     try:
-        print("  -> 正在尝试节点 2 (Catbox)...")
+        print("  -> 正在尝试节点 3 (Catbox)...")
         response = requests.post(
             "https://catbox.moe/user/api.php",
             data={"reqtype": "fileupload"},
@@ -91,10 +116,10 @@ def upload_to_temp_host(image_bytes):
         )
         if response.status_code == 200 and response.text.startswith("http"):
             public_url = response.text.strip()
-            print(f"节点 2 上传成功: {public_url}")
+            print(f"节点 3 上传成功: {public_url}")
             return public_url
     except Exception as e:
-        print(f"节点 2 连接失败 ({e})")
+        print(f"节点 3 (Catbox) 连接失败 ({e})")
 
     print("所有临时图床节点均超时失败。请检查您的网络连接（或尝试使用代理）。")
     return None
@@ -152,7 +177,7 @@ def extract_text(image_bytes):
         return f"OCR识别失败：无法解析图片格式或尺寸，图片可能已损坏 ({str(e)})"
 
     # ==========================================
-    # 获取公开的图片 URL
+    # 获取公开的图片 URL（上传至国内可达图床，供夸克服务器下载）
     # ==========================================
     public_url = upload_to_temp_host(image_bytes)
     if not public_url:
