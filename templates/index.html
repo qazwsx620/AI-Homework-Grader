@@ -533,6 +533,10 @@
                     resultArea.classList.remove('hidden');
                     // 自动保存到批改记录
                     saveGradingToHistory(data);
+                    // 清空预览图片，方便直接批改下一份作业
+                    selectedFile = null;
+                    fileInput.value = '';
+                    clearImagePreview();
                 } else {
                     alert("批改失败：" + data.message);
                 }

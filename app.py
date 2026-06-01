@@ -6,6 +6,9 @@ import os
 from flask import Flask, render_template
 from sqlalchemy import create_engine
 from urllib.parse import quote_plus
+from api.auth_api import auth_bp
+from api.grade_api import grade_bp
+from api.history_api import history_bp
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "ai_homework_grading_secret_key_2024")
@@ -17,7 +20,7 @@ if cloud_db_url:
     print("检测到环境变量，正在连接云端 MySQL 数据库...")
     DB_URL = cloud_db_url
 else:
-    # 如果是在你自己的电脑上测试，使用本地数据库
+    # 如果是在自己的电脑上测试，使用本地数据库
     print("未检测到环境变量，正在连接本地 MySQL 数据库...")
     DB_PASSWORD = quote_plus("251027Wmh#")
     DB_URL = f"mysql+pymysql://root:{DB_PASSWORD}@localhost:3306/studentsdb"
@@ -26,9 +29,6 @@ else:
 app.config['DB_ENGINE'] = create_engine(DB_URL, pool_pre_ping=True)
 
 # 注册蓝图
-from api.auth_api import auth_bp
-from api.grade_api import grade_bp
-from api.history_api import history_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(grade_bp)
 app.register_blueprint(history_bp)
@@ -43,5 +43,5 @@ def index():
 if __name__ == '__main__':
     # 获取 Render 分配的端口，本地默认 5000
     port = int(os.environ.get("PORT", 5000))
-    print(f"🚀 Web 界面启动成功！请在浏览器访问: http://127.0.0.1:{port}")
+    print(f"Web 界面启动成功！请在浏览器访问: http://127.0.0.1:{port}")
     app.run(host='0.0.0.0', port=port, debug=True)

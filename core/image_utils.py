@@ -6,12 +6,13 @@ core/image_utils.py — 批改结果图像绘制模块
 
 """
 import io
+import os
 import base64
 import re
 import unicodedata
 from PIL import Image, ImageDraw, ImageFont
 
-# ===================== 极简配色方案 =====================
+# 配色方案
 THEME_COLOR = {
     "title_text": "#1E40AF",  # 标题深蓝色
     "qid_text": "#1E40AF",  # 题号蓝色
@@ -22,36 +23,35 @@ THEME_COLOR = {
     "canvas_bg": "#FFFFFF"  # 画布底色
 }
 
-# 排版尺寸参数（增大边距和高度，避免截断）
+# 排版尺寸
 PAGE_PADDING = 30
-ROW_SPACING = 18  # 增大行间距，避免文字拥挤
+ROW_SPACING = 18
 TITLE_FONT_SIZE = 30
 CONTENT_FONT_SIZE = 24
-SAFE_MARGIN = 100  # 增大安全边距，防止底部截断
+SAFE_MARGIN = 100
 
 
-# ==========================================================
 
 def sanitize_text(text):
     """
-    文本清洗：处理所有格式的LaTeX公式、乱码，解决残留+截断问题
-    关键修复：调整处理顺序，先处理带反斜杠的命令，再去掉反斜杠
+    文本清洗：处理LaTeX公式、乱码
+    处理顺序：先替换带反斜杠的命令，再去掉残留反斜杠
     """
     if not isinstance(text, str):
         text = str(text)
 
-    # 1. 基础清理（保留原始格式，不提前去掉反斜杠！）
+    # 1. 基础清理
     text = text.replace('\xa0', ' ').replace('\u3000', ' ').replace('\u200b', '')
-    text = text.replace('□', '→')  # 把解析里的乱码□替换成箭头
+    text = text.replace('□', '→')
     text = text.replace('\\left(', '(').replace('\\right)', ')')  # 去掉LaTeX括号
 
-    # 2. 【关键】先处理所有带反斜杠的LaTeX命令（必须在去掉反斜杠之前！）
-    # 2.1 处理分数 \frac{分子}{分母} → (分子)/(分母)（解决frac残留）
+    # 2. 先处理带反斜杠的LaTeX命令（在去掉反斜杠之前）
+    # 2.1 处理分数 \frac{分子}{分母} → (分子)/(分母)
     text = re.sub(r'\\frac\s*\{([^}]+)\}\s*\{([^}]+)\}', r'(\1)/(\2)', text)
-    # 2.2 处理根号（所有格式，含带指数、小数的情况）
+    # 2.2 处理根号
     text = re.sub(r'\\sqrt\s*\{([^}]+)\}', r'√\1', text)
     text = re.sub(r'\\sqrt\s*\(([^)]+)\)', r'√(\1)', text)
-    # 【修复正则错误】把 - 移到字符集末尾，避免非法范围错误
+    # 将 - 移到字符集末尾，避免非法范围错误
     text = re.sub(r'\\sqrt([a-zA-Z0-9.+*/-]+)', r'√\1', text)
     # 2.3 处理其他数学符号
     text = re.sub(r'\\(le|leq)', r'≤', text)
@@ -61,7 +61,7 @@ def sanitize_text(text):
     text = re.sub(r'\\div', r'÷', text)
     text = re.sub(r'\\pi', r'π', text)
 
-    # 3. 处理通用上标（解决10^4、x^2等上标问题）
+    # 3. 处理上标
     # 格式：数字/字母^数字 → 数字/字母⁴（用Unicode上标）
     sup_map = {'0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹'}
 
@@ -74,13 +74,13 @@ def sanitize_text(text):
 
     text = re.sub(r'(\w+)\^(\d+)', replace_sup, text)
 
-    # 4. 去掉残留的反斜杠（必须在所有正则处理之后！）
+    # 4. 去掉残留的反斜杠（在所有正则处理之后）
     text = text.replace('\\', '').replace('  ', ' ')
 
-    # 5. 处理无反斜杠的frac残留（兜底处理，比如用户的frac{√1.8×10⁴}{√2×1}）
+    # 5. 处理无反斜杠的frac残留
     text = re.sub(r'frac\s*\{([^}]+)\}\s*\{([^}]+)\}', r'(\1)/(\2)', text)
 
-    # 6. 字符标准化，过滤表情符号，保留数学符号
+    # 6. 字符标准化，过滤表情符号
     text = unicodedata.normalize('NFKC', text)
     valid_chars = []
     for char in text:
@@ -156,8 +156,6 @@ def wrap_text(text, font, max_width):
 
 def load_font_resource():
     """加载支持所有数学符号的中文字体（优先微软雅黑）"""
-    import os
-
     title_font = None
     content_font = None
 
@@ -235,16 +233,12 @@ def format_feedback_text(feedback_text):
     return output_lines
 
 
-def draw_result_on_image(image_path, result_data):
+def draw_result_on_image(image_data, result_data):
     """
     批改结果绘制：增大安全边距+优化高度计算，解决文本截断
     """
     # 读取原始图片
-    if isinstance(image_path, bytes):
-        img_stream = io.BytesIO(image_path)
-        origin_img = Image.open(img_stream).convert("RGB")
-    else:
-        origin_img = Image.open(image_path).convert("RGB")
+    origin_img = Image.open(io.BytesIO(image_data)).convert("RGB")
 
     # 统一缩放宽度
     fixed_width = 1200
@@ -257,6 +251,11 @@ def draw_result_on_image(image_path, result_data):
 
     # 加载字体
     title_font, content_font = load_font_resource()
+    
+    # 空值检查：防止 result_data 为 None
+    if result_data is None:
+        result_data = {"feedback": "批改结果为空，请重试"}
+    
     raw_feedback = result_data.get("feedback", "")
     text_lines = format_feedback_text(raw_feedback)
     max_text_width = fixed_width - PAGE_PADDING * 2

@@ -79,20 +79,26 @@ def scan_and_enhance_document(image_bytes):
     cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
     screenCnt = None
 
+    resized_area = resized.shape[0] * resized.shape[1]
+
     for c in cnts:
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.02 * peri, True)
         if len(approx) == 4:
-            screenCnt = approx
-            break
+            # 面积 >= 图像 30% 才视为纸张边缘，否则可能是题号框等小四边形，跳过裁剪避免丢失内容
+            contour_area = cv2.contourArea(c)
+            if contour_area > 0.3 * resized_area:
+                screenCnt = approx
+                break
 
     if screenCnt is not None:
         warped = four_point_transform(orig, screenCnt.reshape(4, 2) * ratio)
     else:
         warped = orig
 
-    enhanced = cv2.convertScaleAbs(warped, alpha=1.2, beta=10)
-    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]])
+    enhanced = cv2.convertScaleAbs(warped, alpha=1.1, beta=5)
+    # 轻度锐化，避免过锐导致 OCR 误识别
+    kernel = np.array([[0, -1, 0], [-1, 6, -1], [0, -1, 0]]) / 2
     enhanced = cv2.filter2D(enhanced, -1, kernel)
 
     is_success, buffer = cv2.imencode(".jpg", enhanced, [cv2.IMWRITE_JPEG_QUALITY, 95])
