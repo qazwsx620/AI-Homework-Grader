@@ -129,8 +129,7 @@ start_windows.bat
 
 7. **访问系统**
 
-打开浏览器访问 `https://ai-grader-xpf7.onrender.com`
-'http://43.136.28.210:5000'
+打开浏览器访问 'http://43.136.28.210:5000'
 
 ## 工作流程
 
