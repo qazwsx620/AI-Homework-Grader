@@ -11,7 +11,10 @@ import json
 import uuid
 import hashlib
 import io
+from dotenv import load_dotenv
 from PIL import Image
+
+load_dotenv()
 
 # Windows 终端编码修复：避免 GBK 无法编码 Unicode 字符导致崩溃
 if hasattr(sys.stdout, 'reconfigure'):

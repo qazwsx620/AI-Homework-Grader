@@ -3,7 +3,10 @@ app.py — AI 智能作业批改系统 · 应用入口
 负责：创建 Flask 应用、配置数据库引擎、注册蓝图、启动服务
 """
 import os
+from dotenv import load_dotenv
 from flask import Flask, render_template
+
+load_dotenv()
 from sqlalchemy import create_engine
 from urllib.parse import quote_plus
 from api.auth_api import auth_bp

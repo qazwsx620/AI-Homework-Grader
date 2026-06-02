@@ -29,7 +29,6 @@
 ```
 .
 ├── app.py                  # 应用入口 & Flask 配置
-├── start_windows.bat       # Windows 启动脚本
 ├── requirements.txt        # 依赖清单
 ├── .gitignore
 ├── api/
