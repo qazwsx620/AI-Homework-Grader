@@ -141,34 +141,44 @@ def wrap_text(text, font, max_width):
 
 
 def load_font_resource():
-    """加载支持所有数学符号的中文字体（优先微软雅黑）"""
+    """加载支持所有数学符号的中文字体（兼容 Linux云端 和 本地Windows/Mac）"""
     title_font = None
     content_font = None
 
     win_font_dir = "C:/Windows/Fonts"
+
+    #在候选字体列表中加入 Ubuntu 的文泉驿微米黑字体路径
     font_candidate = [
-        os.path.join(win_font_dir, "msyh.ttc"),
+        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",  # 腾讯云 Ubuntu 专属中文字体
+        os.path.join(win_font_dir, "msyh.ttc"),            # 本地 Windows 微软雅黑
         os.path.join(win_font_dir, "msyhbd.ttc"),
-        os.path.join(win_font_dir, "simhei.ttf"),
+        os.path.join(win_font_dir, "simhei.ttf"),          # 本地 Windows 黑体
         os.path.join(win_font_dir, "simsun.ttc"),
         "msyh.ttc",
         "simhei.ttf",
         "Arial Unicode.ttf",
-        "PingFang.ttc",
+        "PingFang.ttc",                                    # 本地 Mac 苹方字体
     ]
 
     for font_name in font_candidate:
         try:
             title_font = ImageFont.truetype(font_name, TITLE_FONT_SIZE)
             content_font = ImageFont.truetype(font_name, CONTENT_FONT_SIZE)
-            break
+            break  # 只要成功加载到一个字体，就立刻跳出循环
         except (IOError, OSError):
             continue
 
     if not title_font:
-        title_font = ImageFont.load_default(size=TITLE_FONT_SIZE)
+        print("警告：系统未找到任何中文字体，已降级为默认英文字体（可能出现豆腐块乱码）")
+        title_font = ImageFont.load_default()
     if not content_font:
-        content_font = ImageFont.load_default(size=CONTENT_FONT_SIZE)
+        content_font = ImageFont.load_default()
+
+    # PIL < 10.0 的版本处理
+    if not hasattr(title_font, 'getbbox'):
+        title_font.getbbox = lambda text: (0, 0, title_font.getsize(text)[0], title_font.getsize(text)[1])
+    if not hasattr(content_font, 'getbbox'):
+        content_font.getbbox = lambda text: (0, 0, content_font.getsize(text)[0], content_font.getsize(text)[1])
 
     return title_font, content_font
 
