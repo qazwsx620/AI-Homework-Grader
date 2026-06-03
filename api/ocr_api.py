@@ -45,7 +45,6 @@ def get_signature(client_id, client_secret, business, sign_method, sign_nonce, t
     return digest.lower()
 
 
-
 # 绕过代理的配置（避免 HTTP_PROXY/HTTPS_PROXY 环境变量干扰图床上传）
 _NO_PROXY = {"http": "", "https": ""}
 
@@ -53,8 +52,6 @@ _NO_PROXY = {"http": "", "https": ""}
 def upload_to_temp_host(image_bytes):
     """
     多节点智能中转引擎：将本地图片临时上传至免费的公网图床
-    节点 1: FreeImage.host（base64 上传）
-    节点 2: Catbox.moe（multipart 上传，兜底）
     """
     print("正在将图片上传至临时中转图床...")
 
@@ -74,7 +71,6 @@ def upload_to_temp_host(image_bytes):
                 if public_url:
                     print(f"节点 1 上传成功: {public_url}")
                     return public_url
-            # SM.MS 返回图片已存在时也提取 URL
             elif res_json.get("code") == "image_repeated":
                 public_url = res_json.get("images")
                 if public_url:
@@ -128,10 +124,10 @@ def upload_to_temp_host(image_bytes):
     return None
 
 
-def extract_text(image_bytes):
+def extract_text(image_bytes, public_url=None):
     """
     核心 OCR 函数：使用夸克 RecognizeQuestion 接口提取试卷文字
-    流程：图片校验 → 自动压缩 → 上传图床 → 调用夸克 API → 递归提取文本
+    支持直接接收外部传入的 public_url（本机图床URL），跳过上传阶段
     """
     # ==========================================
     # 智能图片规范校验与自动压缩引擎
@@ -180,9 +176,12 @@ def extract_text(image_bytes):
         return f"OCR识别失败：无法解析图片格式或尺寸，图片可能已损坏 ({str(e)})"
 
     # ==========================================
-    # 获取公开的图片 URL（上传至国内可达图床，供夸克服务器下载）
+    # 获取公开的图片 URL
     # ==========================================
-    public_url = upload_to_temp_host(image_bytes)
+    # 如果调用方没有提供公网 URL，才去使用不稳定的海外图床
+    if not public_url:
+        public_url = upload_to_temp_host(image_bytes)
+
     if not public_url:
         return "OCR识别失败：无法将图片中转至公网，请检查您的网络连接。"
 
@@ -223,9 +222,6 @@ def extract_text(image_bytes):
 
         if response.status_code == 200:
             res_json = response.json()
-            import json as _json
-            print("夸克接口原始返回数据：", _json.dumps(res_json, ensure_ascii=False, indent=2, default=str))
-
             code = str(res_json.get("code", ""))
             if code not in ["200", "0", "00000"]:
                 error_msg = res_json.get("message") or res_json.get("msg") or "未知错误"
@@ -251,10 +247,7 @@ def extract_text(image_bytes):
 
 
 def _extract_all_texts(data):
-    """
-    辅助函数：递归提取夸克 API 返回的嵌套 JSON 中的文本
-    自动探测 'Value' / 'content' / 'text' / 'words' 等字段
-    """
+    """递归提取嵌套JSON"""
     lines = []
     if isinstance(data, dict):
         text = data.get("Value") or data.get("content") or data.get("text") or data.get("words")
@@ -274,21 +267,3 @@ def _extract_all_texts(data):
                 lines.append(sub_text)
 
     return "\n".join(lines)
-
-
-# ================= 本地测试专区 =================
-if __name__ == "__main__":
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)
-    image_path = os.path.join(project_root, "images", "1.jpg")
-
-    if not os.path.exists(image_path):
-        print(f"找不到测试图片: {image_path}")
-    else:
-        print("正在发送请求至夸克视觉识别大模型 ...")
-        with open(image_path, "rb") as f:
-            image_bytes = f.read()
-
-        result_text = extract_text(image_bytes)
-        print("\n=== 最终提取结果 ===")
-        print(result_text)

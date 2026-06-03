@@ -141,40 +141,62 @@ def wrap_text(text, font, max_width):
 
 
 def load_font_resource():
-    """加载支持所有数学符号的中文字体（兼容 Linux云端 和 本地Windows/Mac）"""
+    """加载支持所有数学符号的中文字体（终极防乱码版）"""
     title_font = None
     content_font = None
 
-    win_font_dir = "C:/Windows/Fonts"
+    # 获取当前项目根目录和 core 目录
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
 
-    #在候选字体列表中加入 Ubuntu 的文泉驿微米黑字体路径
+    # 终极全平台字体搜索列表
     font_candidate = [
-        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",  # 腾讯云 Ubuntu 专属中文字体
-        os.path.join(win_font_dir, "msyh.ttc"),            # 本地 Windows 微软雅黑
-        os.path.join(win_font_dir, "msyhbd.ttc"),
-        os.path.join(win_font_dir, "simhei.ttf"),          # 本地 Windows 黑体
-        os.path.join(win_font_dir, "simsun.ttc"),
+        # 1. 优先寻找放在项目文件夹里的字体
+        os.path.join(project_root, "simhei.ttf"),
+        os.path.join(project_root, "msyh.ttc"),
+        os.path.join(current_dir, "simhei.ttf"),
+
+        # 2. Linux Ubuntu 云端常用字体路径
+        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
+        "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
+        "/usr/share/fonts/wqy-microhei/wqy-microhei.ttc",
+
+        # 3. Windows 本地路径
+        "C:/Windows/Fonts/msyh.ttc",
+        "C:/Windows/Fonts/msyhbd.ttc",
+        "C:/Windows/Fonts/simhei.ttf",
+        "C:/Windows/Fonts/simsun.ttc",
+
+        # 4. Mac 本地路径
+        "/System/Library/Fonts/PingFang.ttc",
+
+        # 5. 直接依靠系统环境变量嗅探
         "msyh.ttc",
         "simhei.ttf",
-        "Arial Unicode.ttf",
-        "PingFang.ttc",                                    # 本地 Mac 苹方字体
+        "Arial Unicode.ttf"
     ]
 
+    loaded_font_path = None
     for font_name in font_candidate:
+        if not os.path.exists(font_name) and not font_name.endswith((".ttf", ".ttc")):
+            continue # 如果是绝对路径且文件不存在，直接跳过
+
         try:
             title_font = ImageFont.truetype(font_name, TITLE_FONT_SIZE)
             content_font = ImageFont.truetype(font_name, CONTENT_FONT_SIZE)
-            break  # 只要成功加载到一个字体，就立刻跳出循环
+            loaded_font_path = font_name
+            print(f"成功加载中文字体，路径: {loaded_font_path}")
+            break
         except (IOError, OSError):
             continue
 
     if not title_font:
-        print("警告：系统未找到任何中文字体，已降级为默认英文字体（可能出现豆腐块乱码）")
+        print("严重警告：系统未找到任何中文字体，已降级为默认英文字体（必定出现乱码）")
         title_font = ImageFont.load_default()
     if not content_font:
         content_font = ImageFont.load_default()
 
-    # PIL < 10.0 的版本处理
+    # 兼容低版本 PIL
     if not hasattr(title_font, 'getbbox'):
         title_font.getbbox = lambda text: (0, 0, title_font.getsize(text)[0], title_font.getsize(text)[1])
     if not hasattr(content_font, 'getbbox'):
