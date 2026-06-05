@@ -21,6 +21,8 @@
             }
         }
     </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
     <style type="text/tailwindcss">
         @layer utilities {
             .btn-hover { @apply hover:scale-105 transition-all duration-200 active:scale-95; }
@@ -94,6 +96,13 @@
         const imgZoomMask = document.getElementById('imgZoomMask');
         const imgZoom = document.getElementById('imgZoom');
         const closeZoom = document.getElementById('closeZoom');
+
+        // 裁剪
+        const cropContainer = document.getElementById('cropContainer');
+        const cropImage = document.getElementById('cropImage');
+        const confirmCropBtn = document.getElementById('confirmCropBtn');
+        const cancelCropBtn = document.getElementById('cancelCropBtn');
+        let cropperInstance = null;
 
         // 历史记录
         const historyPage = document.getElementById('historyPage');
@@ -264,6 +273,7 @@
             selectedFile = null;
             fileInput.value = '';
             clearImagePreview();
+            destroyCropper();
         }
 
         goToGradingBtn.addEventListener('click', () => {
@@ -426,6 +436,84 @@
             dropArea.classList.add('border-dashed', 'border-gray-300');
         }
 
+        // ==================== 裁剪功能（类似作业帮） ====================
+        function openCropInterface(file) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                cropImage.src = e.target.result;
+                cropContainer.classList.remove('hidden');
+                // 等图片加载完后初始化 Cropper
+                cropImage.onload = () => {
+                    if (cropperInstance) {
+                        cropperInstance.destroy();
+                        cropperInstance = null;
+                    }
+                    cropperInstance = new Cropper(cropImage, {
+                        viewMode: 1,
+                        dragMode: 'crop',
+                        aspectRatio: NaN,
+                        autoCropArea: 0.8,
+                        restore: false,
+                        guides: true,
+                        center: true,
+                        highlight: false,
+                        cropBoxMovable: true,
+                        cropBoxResizable: true,
+                        toggleDragModeOnDblclick: false,
+                        background: false,
+                        minContainerWidth: 200,
+                        minContainerHeight: 200,
+                    });
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function destroyCropper() {
+            if (cropperInstance) {
+                cropperInstance.destroy();
+                cropperInstance = null;
+            }
+            cropContainer.classList.add('hidden');
+        }
+
+        confirmCropBtn.addEventListener('click', () => {
+            if (!cropperInstance) return;
+            const canvas = cropperInstance.getCroppedCanvas({
+                maxWidth: 4096,
+                maxHeight: 4096,
+                fillColor: '#fff',
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+            if (!canvas) return;
+            const inst = cropperInstance;
+            cropperInstance = null;
+            inst.destroy();
+            canvas.toBlob(blob => {
+                const name = selectedFile ? selectedFile.name : `裁剪作业_${Date.now()}.jpg`;
+                selectedFile = new File([blob], name, { type: 'image/jpeg' });
+                showImagePreview(selectedFile);
+                cropContainer.classList.add('hidden');
+            }, 'image/jpeg', 0.95);
+        });
+
+        cancelCropBtn.addEventListener('click', () => {
+            destroyCropper();
+            selectedFile = null;
+            fileInput.value = '';
+            clearImagePreview();
+        });
+
+        cropContainer.addEventListener('click', (e) => {
+            if (e.target === cropContainer) {
+                destroyCropper();
+                selectedFile = null;
+                fileInput.value = '';
+                clearImagePreview();
+            }
+        });
+
         previewImage.addEventListener('click', ()=>{
             imgZoom.src = previewImage.src;
             imgZoomMask.classList.remove('hidden');
@@ -488,8 +576,8 @@
             canvasElement.toBlob(blob => {
                 const name = `作业拍照_${Date.now()}.jpg`;
                 selectedFile = new File([blob], name, {type: "image/jpeg"});
-                showImagePreview(selectedFile);
                 stopCamera();
+                openCropInterface(selectedFile);
             }, "image/jpeg", 0.95);
         });
 
@@ -497,7 +585,7 @@
             if (isGrading) return;
             if (e.target.files.length > 0) {
                 selectedFile = e.target.files[0];
-                showImagePreview(selectedFile);
+                openCropInterface(selectedFile);
             }
         });
 
@@ -510,7 +598,7 @@
             if (files.length && files[0].type.startsWith('image/')){
                 selectedFile = files[0];
                 fileInput.files = files;
-                showImagePreview(selectedFile);
+                openCropInterface(selectedFile);
             }
         });
 
@@ -552,6 +640,7 @@
             selectedFile = null;
             fileInput.value = '';
             clearImagePreview();
+            destroyCropper();
         });
 
         // ==================== 启动 ====================

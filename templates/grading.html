@@ -80,6 +80,40 @@
             </div>
         </div>
 
+        <!-- ========== 裁剪区域（类似作业帮） ========== -->
+        <div id="cropContainer" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-2 sm:p-6">
+            <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+                <!-- 顶部栏 -->
+                <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-lg">✂️</span>
+                        <h3 class="font-semibold text-gray-800">裁剪作业区域</h3>
+                    </div>
+                    <span class="text-sm text-gray-400">请框选出想要批改的部分</span>
+                </div>
+                <!-- 图片裁剪区 -->
+                <div class="flex-1 min-h-0 bg-gray-900 p-2 sm:p-4 flex items-center justify-center overflow-hidden">
+                    <img id="cropImage" src="" alt="裁剪预览" class="max-w-full max-h-full">
+                </div>
+                <!-- 底部操作栏 -->
+                <div class="flex items-center justify-between px-5 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
+                    <div class="flex items-center gap-4 text-sm text-gray-500">
+                        <span>🖱️ 拖动/缩放选择区域</span>
+                        <span class="hidden sm:inline">|</span>
+                        <span class="hidden sm:inline">滚轮缩放图片</span>
+                    </div>
+                    <div class="flex gap-3">
+                        <button id="cancelCropBtn" class="px-5 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-100 btn-hover text-sm">
+                            重新选择
+                        </button>
+                        <button id="confirmCropBtn" class="px-6 py-2 rounded-lg text-white bg-primary hover:bg-primary/90 btn-hover text-sm font-medium">
+                            确认裁剪
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 点击图片放大的全屏遮罩 -->
         <div id="imgZoomMask" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
             <img id="imgZoom" class="max-w-full max-h-full object-contain">
