@@ -42,17 +42,21 @@ def api_grade():
         temp_filename = f"ocr_temp_{uuid.uuid4().hex}.jpg"
         temp_filepath = os.path.join("static", temp_filename)
 
-        # 将 OpenCV 处理好的图片暂时存在自己服务器的 static 文件夹中
+        # 将 OpenCV 处理好的图片暂时存在本地服务器的 static 文件夹中
         with open(temp_filepath, "wb") as f:
             f.write(enhanced_bytes)
 
-        # 利用 Flask 动态生成当前服务器的真实公网地址
-        # (例如: http://11.22.33.44:5000/static/ocr_temp_xxx.jpg)
+        # 检测是否为本地地址（127.0.0.1 / localhost），如果是则不传 public_url，
+        # 让 extract_text() 自动回退到公网图床上传模式，否则夸克无法访问本机地址
         my_public_url = request.host_url + f"static/{temp_filename}"
-        print(f"本机图床链接已生成: {my_public_url}")
+        is_local = "127.0.0.1" in my_public_url or "localhost" in my_public_url or "0.0.0.0" in my_public_url
+        if is_local:
+            print("检测到本地地址，跳过本机图床直传，改用公网图床上传中转")
+            my_public_url = None
+        else:
+            print(f"本机图床链接已生成: {my_public_url}")
 
         print("正在调用夸克进行OCR识别")
-        # 把自己的公网 URL 传给夸克，跳过不稳定的海外图床
         paper_text = extract_text(enhanced_bytes, public_url=my_public_url)
 
         # 阅后即焚：夸克一旦识别完，立刻删掉刚才保存在服务器上的图片，防止硬盘爆满
