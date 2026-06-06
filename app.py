@@ -13,6 +13,7 @@ from api.auth_api import auth_bp
 from api.grade_api import grade_bp
 from api.history_api import history_bp
 
+#创建一个flask应用实例
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "ai_homework_grading_secret_key_2024")
 # 尝试从环境变量读取云端数据库 URL (Render 部署时配置)

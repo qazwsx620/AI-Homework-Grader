@@ -19,7 +19,7 @@ grade_bp = Blueprint('grade', __name__)
 @grade_bp.route('/api/grade', methods=['POST'])
 def api_grade():
     """
-    核心批改接口：本机公网图床直传升级版
+    核心批改接口：本机公网图床直传
     """
     if 'image' not in request.files:
         return jsonify({'status': 'error', 'message': '没有找到图片'}), 400
@@ -52,7 +52,7 @@ def api_grade():
         print(f"本机图床链接已生成: {my_public_url}")
 
         print("正在调用夸克进行OCR识别")
-        # 把自己的公网 URL 传给夸克，彻底跳过不稳定的海外免费图床！
+        # 把自己的公网 URL 传给夸克，跳过不稳定的海外图床
         paper_text = extract_text(enhanced_bytes, public_url=my_public_url)
 
         # 阅后即焚：夸克一旦识别完，立刻删掉刚才保存在服务器上的图片，防止硬盘爆满
@@ -73,7 +73,7 @@ def api_grade():
         print("正在绘制批改结果图")
         result_image = draw_result_on_image(image_bytes, result)
 
-        # 强制释放内存，防止 OOM
+        # 强制释放内存，防止服务器溢出（OOM）
         del image_bytes
         del enhanced_bytes
         gc.collect()

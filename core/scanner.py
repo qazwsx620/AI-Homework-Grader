@@ -46,6 +46,7 @@ def four_point_transform(image, pts):
         [maxWidth - 1, maxHeight - 1],
         [0, maxHeight - 1]], dtype="float32")
 
+    #执行透视变换
     M = cv2.getPerspectiveTransform(rect, dst)
     warped = cv2.warpPerspective(image, M, (maxWidth, maxHeight))
     return warped
@@ -62,6 +63,7 @@ def scan_and_enhance_document(image_bytes):
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     orig = image.copy()
 
+    #计算图像的缩放比例
     ratio = image.shape[0] / 500.0
     orig_height, orig_width = image.shape[:2]
 
@@ -71,16 +73,19 @@ def scan_and_enhance_document(image_bytes):
     else:
         resized = cv2.resize(image, (int(orig_width / ratio), 500))
 
+    #图像预处理（先将图像转为灰度图，再用高斯模糊去噪，最后用Canny算子检测边缘）
     gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
     edged = cv2.Canny(blur, 75, 200)
 
+    #检测边缘图中的轮廓
     cnts, _ = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
     screenCnt = None
 
     resized_area = resized.shape[0] * resized.shape[1]
 
+    #从候选轮廓中筛选文档边界
     for c in cnts:
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.02 * peri, True)
@@ -96,6 +101,7 @@ def scan_and_enhance_document(image_bytes):
     else:
         warped = orig
 
+    #对透视变换后的图像进行增强
     enhanced = cv2.convertScaleAbs(warped, alpha=1.1, beta=5)
     # 轻度锐化，避免过锐导致 OCR 误识别
     kernel = np.array([[0, -1, 0], [-1, 6, -1], [0, -1, 0]]) / 2

@@ -139,14 +139,17 @@ def extract_text(image_bytes, public_url=None):
             if img_format.upper() not in valid_formats:
                 return f"OCR识别失败：不支持的图片格式 {img_format}。建议使用 JPG/JPEG 格式。"
 
+            #限制上传的图片尺寸，长、宽必须都大于15像素
             width, height = img.size
             if width < 15 or height < 15:
                 return f"OCR识别失败：图片尺寸 ({width}x{height}) 太小，长宽均需大于 15 像素。"
 
+            #限制图片长宽比，防止处理比例异常的无效图片（最小边大于0，长比大于等于50）
             max_side, min_side = max(width, height), min(width, height)
             if min_side > 0 and (max_side / min_side) >= 50:
                 return f"OCR识别失败：图片长宽比例异常 ({(max_side / min_side):.2f})，长宽比必须小于 50。"
 
+            #限制图片尺寸，防止处理尺寸过大的图片，如果超出8192像素，则进行图片尺寸压缩
             if width > 8192 or height > 8192:
                 ratio = 8192.0 / max(width, height)
                 new_w, new_h = int(width * ratio), int(height * ratio)
@@ -155,13 +158,16 @@ def extract_text(image_bytes, public_url=None):
                     Image, 'ANTIALIAS', 1)
                 img = img.resize((new_w, new_h), resample_filter)
 
+            #如果图片的格式不是 RGB，则进行格式转换
             if img.mode != 'RGB':
                 img = img.convert('RGB')
 
+            #保存图片
             buffered = io.BytesIO()
             quality = 95
             img.save(buffered, format="JPEG", quality=quality)
 
+            #如果图片的尺寸仍然超出了5MB，则进行质量压缩
             while len(buffered.getvalue()) > 5 * 1024 * 1024 and quality > 30:
                 quality -= 10
                 buffered = io.BytesIO()
@@ -247,7 +253,7 @@ def extract_text(image_bytes, public_url=None):
 
 
 def _extract_all_texts(data):
-    """递归提取嵌套JSON"""
+    """递归提取嵌套JSON中的所有文本"""
     lines = []
     if isinstance(data, dict):
         text = data.get("Value") or data.get("content") or data.get("text") or data.get("words")

@@ -29,6 +29,7 @@
 ```
 .
 ├── app.py                  # 应用入口 & Flask 配置
+├── start_windows.bat       # 多并发启动脚本
 ├── requirements.txt        # 依赖清单
 ├── .gitignore
 ├── api/
@@ -122,7 +123,7 @@ pip install flask sqlalchemy pymysql opencv-python-headless pillow requests
 python app.py
 ```
 
-或使用生产模式：
+或使用生产模式（多并发，最多支持8个线程并发）：
 ```
 start_windows.bat
 ```
@@ -134,7 +135,7 @@ start_windows.bat
 ## 工作流程
 
 1. 用户注册/登录
-2. 上传作业图片（支持 JPG/PNG/BMP/GIF 等格式）
+2. 上传作业图片（支持 JPG/PNG/BMP/GIF 等格式），用户可以先对拍照提交的图片进行裁剪，再选择提交
 3. 系统进行图像自动裁剪与增强（纸张边缘检测 → 透视变换拉正）
 4. 夸克 OCR 识别图片中的文字
 5. 千问大模型批改作业，返回题号、正误判断、标准答案、解题解析

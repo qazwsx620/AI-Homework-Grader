@@ -124,10 +124,3 @@ def correction_work(work):
         except UnicodeEncodeError:
             pass
 
-
-if __name__ == "__main__":
-    test_q = ("已知 x + 2 = 5，求 x 的值。解：x = 3")
-    print("正在呼叫大模型老师进行批改，请稍候...")
-    result = correction_work(test_q)
-    print("\n批改完成！结果是：")
-    print(result)
