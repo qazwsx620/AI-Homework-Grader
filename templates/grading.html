@@ -120,11 +120,23 @@
             <button id="closeZoom" class="absolute top-6 right-6 text-white text-3xl">&times;</button>
         </div>
 
-        <!-- 加载动画 -->
+        <!-- 加载动画 + 进度条 -->
         <div id="loading" class="hidden text-center my-12 smooth-transition">
-            <div class="inline-block animate-spin rounded-full h-14 w-14 border-b-3 border-primary"></div>
-            <p class="mt-4 text-lg text-neutral font-medium">⏳ 正在处理图片并智能批改中，请稍候...</p>
-            <p class="text-sm text-gray-400 mt-2">处理期间无法更换图片</p>
+            <div class="max-w-md mx-auto bg-white card-shadow sm:rounded-xl p-8">
+                <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-gray-200 border-t-primary mb-6"></div>
+                <!-- 进度条 -->
+                <div class="w-full bg-gray-200 rounded-full h-3 mb-4 overflow-hidden">
+                    <div id="progressBar" class="bg-primary h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+                </div>
+                <!-- 进度文字 -->
+                <p id="progressText" class="text-base text-neutral font-medium">正在准备...</p>
+                <div id="progressSteps" class="flex justify-between mt-6 text-xs text-gray-400 px-1">
+                    <span class="step" data-step="1">上传图片</span>
+                    <span class="step" data-step="2">识别文字</span>
+                    <span class="step" data-step="3">AI批改</span>
+                    <span class="step" data-step="4">生成结果</span>
+                </div>
+            </div>
         </div>
 
         <!-- 结果区域 -->

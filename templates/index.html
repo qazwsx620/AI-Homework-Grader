@@ -274,6 +274,7 @@
             fileInput.value = '';
             clearImagePreview();
             destroyCropper();
+            stopProgress(true);
         }
 
         goToGradingBtn.addEventListener('click', () => {
@@ -525,6 +526,90 @@
             if (e.target === imgZoomMask) imgZoomMask.classList.add('hidden');
         });
 
+        // ==================== 实时进度条控制 ====================
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const progressSteps = document.getElementById('progressSteps');
+        let progressPollTimer = null;
+        let currentTaskId = null;
+
+        function updateProgressUI(progress, stage) {
+            const pct = Math.min(100, Math.max(0, progress));
+            progressBar.style.width = pct + '%';
+            progressText.textContent = stage;
+
+            // 根据进度高亮底部步骤
+            let activeStep = 1;
+            if (pct >= 85) activeStep = 4;
+            else if (pct >= 60) activeStep = 3;
+            else if (pct >= 20) activeStep = 2;
+
+            document.querySelectorAll('.step').forEach(el => {
+                const stepNum = parseInt(el.dataset.step);
+                if (stepNum <= activeStep) {
+                    el.classList.add('text-primary', 'font-semibold');
+                } else {
+                    el.classList.remove('text-primary', 'font-semibold');
+                }
+            });
+        }
+
+        function startPollingProgress(taskId) {
+            currentTaskId = taskId;
+            if (progressPollTimer) clearInterval(progressPollTimer);
+
+            // 初始重置
+            progressBar.style.width = '0%';
+            progressText.textContent = '正在准备...';
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('text-primary', 'font-semibold'));
+
+            progressPollTimer = setInterval(async () => {
+                try {
+                    const res = await fetch(`/api/grade/progress/${taskId}`);
+                    const data = await res.json();
+                    const progress = data.progress || 0;
+
+                    updateProgressUI(progress, data.stage || '处理中...');
+
+                    if (progress === 100) {
+                        // 完成！
+                        clearInterval(progressPollTimer);
+                        progressPollTimer = null;
+                        if (data.result && data.result.status === 'success') {
+                            resultImage.src = data.result.image_path;
+                            resultArea.classList.remove('hidden');
+                        }
+                        loading.classList.add('hidden');
+                        submitBtn.disabled = false;
+                        unlockAllOperate();
+                    } else if (progress < 0) {
+                        // 出错
+                        clearInterval(progressPollTimer);
+                        progressPollTimer = null;
+                        loading.classList.add('hidden');
+                        submitBtn.disabled = false;
+                        unlockAllOperate();
+                        alert('批改失败：' + (data.stage || '未知错误'));
+                    }
+                } catch (err) {
+                    console.error('轮询进度失败:', err);
+                }
+            }, 600);
+        }
+
+        function stopProgress(reset) {
+            if (progressPollTimer) {
+                clearInterval(progressPollTimer);
+                progressPollTimer = null;
+            }
+            currentTaskId = null;
+            if (reset) {
+                progressBar.style.width = '0%';
+                progressText.textContent = '正在准备...';
+                document.querySelectorAll('.step').forEach(el => el.classList.remove('text-primary', 'font-semibold'));
+            }
+        }
+
         function lockAllOperate() {
             isGrading = true;
             fileInput.disabled = true;
@@ -618,20 +703,20 @@
             try {
                 const res = await fetch('/api/grade', {method:'POST', body: formData});
                 const data = await res.json();
-                if (data.status === 'success') {
-                    resultImage.src = data.image_path;
-                    resultArea.classList.remove('hidden');
-                    saveGradingToHistory(data);
+                if (data.status === 'success' && data.task_id) {
+                    startPollingProgress(data.task_id);
                 } else {
-                    alert("批改失败：" + data.message);
+                    loading.classList.add('hidden');
+                    submitBtn.disabled = false;
+                    unlockAllOperate();
+                    alert("批改失败：" + (data.message || '未知错误'));
                 }
             } catch(err) {
+                loading.classList.add('hidden');
+                submitBtn.disabled = false;
+                unlockAllOperate();
                 alert("网络异常，请检查后端服务");
                 console.error(err);
-            } finally {
-                submitBtn.disabled = false;
-                loading.classList.add('hidden');
-                unlockAllOperate();
             }
         });
 

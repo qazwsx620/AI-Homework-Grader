@@ -92,7 +92,8 @@ def correction_work(work):
         }
     }
 
-    response = requests.post(url, headers=headers, json=payload, timeout=request_timeout)
+    #绕过代理
+    response = requests.post(url, headers=headers, json=payload, proxies={"http": "", "https": ""}, timeout=request_timeout)
 
     if response.status_code == 200:
         try:
